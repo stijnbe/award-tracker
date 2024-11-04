@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model FlightAward {
+  id               String          @id @default(cuid())
+  externalFlightId String          @unique
+  departureDate    String
+  origin           String
+  destination      String
+  taxes            Int
+  currency         String
+  miles            Int
+  segments         FlightSegment[]
+  layovers         Layover[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  lastSeenAt DateTime @default(now())
+
+  @@index([departureDate])
+}
+
+model FlightSegment {
+  id               Int      @id @default(autoincrement())
+  flightNumber     String
+  departureAirport String
+  arrivalAirport   String
+  departureTime    DateTime
+  arrivalTime      DateTime
+
+  aircraftCode String
+  aircraft     Aircraft @relation(fields: [aircraftCode], references: [code])
+
+  airlineCode String
+  airline     Airline @relation(fields: [airlineCode], references: [code])
+
+  // Relationship with FlightAward
+  flightAward   FlightAward @relation(fields: [flightAwardId], references: [id], onDelete: Cascade)
+  flightAwardId String
+
+  // Order of segments in the flight
+  segmentOrder Int
+
+  @@index([flightAwardId])
+  @@index([departureAirport, arrivalAirport])
+  @@index([departureTime])
+}
+
+model Layover {
+  id              Int @id @default(autoincrement())
+  layoverDuration Int // Stored as minutes
+
+  airport     Airport @relation(fields: [airportCode], references: [code])
+  airportCode String
+
+  // Relationship with FlightAward
+  flightAward   FlightAward @relation(fields: [flightAwardId], references: [id], onDelete: Cascade)
+  flightAwardId String
+
+  // Order of layovers in the flight
+  layoverOrder Int
+
+  @@index([flightAwardId])
+  @@index([airportCode])
+}
+
+// Airport reference table for data integrity
+model Airport {
+  code        String @id // Airport IATA code
+  name        String
+  cityName    String
+  countryCode String
+
+  Layover Layover[]
+
+  @@index([countryCode])
+}
+
+model Aircraft {
+  code          String          @id
+  name          String
+  FlightSegment FlightSegment[]
+}
+
+model Airline {
+  code          String          @id
+  name          String
+  FlightSegment FlightSegment[]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@award-tracker/milesandmore",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {},
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@award-tracker/db": "workspace:*",
+    "chalk": "^5.3.0",
+    "puppeteer": "^23.6.1"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

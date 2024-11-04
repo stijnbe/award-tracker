@@ -1,0 +1,11 @@
+{
+  "name": "@award-tracker/kv",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "ioredis": "~5.4.1"
+  }
+}
