@@ -3,9 +3,6 @@
   "globalDependencies": [".env"],
   "ui": "tui",
   "tasks": {
-    "vercel-build": {
-      "cache": false
-    },
     "build": {
       "dependsOn": ["^build", "db:generate"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
