@@ -3,6 +3,9 @@
   "globalDependencies": [".env"],
   "ui": "tui",
   "tasks": {
+    "vercel-build": {
+      "cache": false
+    },
     "build": {
       "dependsOn": ["^build", "db:generate"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -22,6 +25,25 @@
     },
     "db:push": {
       "cache": false
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:deploy": {
+      "dependsOn": ["db:generate"],
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
     }
-  }
+  },
+  "globalEnv": [
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "MILESANDMORE_USERNAME",
+    "MILESANDMORE_PASSWORD",
+    "REDIS_URL"
+  ]
 }
