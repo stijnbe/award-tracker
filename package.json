@@ -2,7 +2,6 @@
   "name": "award-tracker",
   "private": true,
   "scripts": {
-    "vercel-build": "turbo db:deploy && turbo build",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
