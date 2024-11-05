@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "vercel-build": "turbo db:deploy && turbo build"
+    "vercel-build": "prisma generate && prisma migrate deploy && turbo build"
   },
   "dependencies": {
     "@award-tracker/db": "workspace:*",
