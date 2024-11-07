@@ -98,6 +98,36 @@ async function getCookies(): Promise<
   return JSON.parse(cookiesJSON);
 }
 
+async function getHeaders(): Promise<Record<string, string>> {
+  const apiGatewayKey = await kv.get("milesandmore_api_gateway_key");
+  const mamcomstateJSON = await kv.get("milesandmore_mamcomstate");
+  const mamcomstate = mamcomstateJSON ? JSON.parse(mamcomstateJSON) : null;
+
+  const cookies = await getCookies();
+
+  return {
+    accept: "application/json, text/plain, */*",
+    "accept-language": "en-US,en;q=0.9,nl;q=0.8,fr;q=0.7",
+    "content-type": "application/json",
+    priority: "u=1, i",
+    rtw: "true",
+    "sec-ch-ua":
+      '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "x-api-key": apiGatewayKey!,
+    "x-csrf-token": mamcomstate?.authentication.CSRF_TOKEN,
+    Referer: "https://www.miles-and-more.com/",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    cookie: cookies
+      ? cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ")
+      : "",
+  };
+}
+
 async function getBestByDay(payload: BestByDayRequest): Promise<{
   flights: FlightInfo[];
   dictionaries: BestByDayResponse["dictionaries"];
@@ -108,26 +138,7 @@ async function getBestByDay(payload: BestByDayRequest): Promise<{
     "https://api.miles-and-more.com/flights/v3/bestbyday",
     {
       method: "POST",
-      headers: {
-        accept: "application/json, text/plain, */*",
-        "accept-language": "en-US,en;q=0.9,nl;q=0.8,fr;q=0.7",
-        "content-type": "application/json",
-        priority: "u=1, i",
-        rtw: "true",
-        "sec-ch-ua":
-          '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"macOS"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-
-        Referer: "https://www.miles-and-more.com/",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-        cookie: cookies
-          ? cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ")
-          : "",
-      },
+      headers: await getHeaders(),
       body: JSON.stringify(payload),
     }
   );
@@ -205,10 +216,7 @@ const generateFlightId = (
     flightNumber: string;
     departureAirport: string;
     arrivalAirport: string;
-  }>,
-  miles: number,
-  taxes: number,
-  currency: string
+  }>
 ): string => {
   // Create a unique string combining date and flight numbers/routes
   const flightPath = segments
@@ -217,7 +225,7 @@ const generateFlightId = (
         `${seg.flightNumber}-${seg.departureAirport}${seg.arrivalAirport}`
     )
     .join("-");
-  return `${departureDate}-${flightPath}-${miles}-${taxes}-${currency}`;
+  return `${departureDate}-${flightPath}`;
 };
 
 function cleanBestByDayResponse(response: BestByDayResponse): FlightInfo[] {
@@ -268,13 +276,7 @@ function cleanBestByDayResponse(response: BestByDayResponse): FlightInfo[] {
     const taxes = item.prices.totalPrices[0]?.totalTaxes ?? 0;
     const currency = item.prices.totalPrices[0]?.currencyCode ?? "EUR";
 
-    const id = generateFlightId(
-      item.departureDate,
-      flightSegments,
-      miles,
-      taxes,
-      currency
-    );
+    const id = generateFlightId(item.departureDate, flightSegments);
 
     return {
       id: id,
@@ -297,9 +299,6 @@ async function login(username: string, password: string) {
   try {
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-    );
     await page.goto("https://account.miles-and-more.com/web/be/en/login.html");
 
     //fill username
@@ -322,6 +321,28 @@ async function login(username: string, password: string) {
     const cookies = await page.cookies();
     //store the cookies in the KV store
     await kv.set("milesandmore_cookies", JSON.stringify(cookies));
+
+    const apiGatewayKey = await page.evaluate(() => {
+      const metaTag = document.querySelector(
+        'meta[name="mamcom-htltofrontend"]'
+      );
+      if (metaTag) {
+        const apiEndpointKeys = JSON.parse(
+          metaTag.getAttribute("data-mamcom-apiendpointkeys")!
+        );
+        return apiEndpointKeys.apiGateway;
+      }
+      return null;
+    });
+
+    await kv.set("milesandmore_api_gateway_key", apiGatewayKey);
+
+    //get mancomstate from localstorage
+    const mamcomstate = await page.evaluate(() => {
+      return localStorage.getItem("mancomstate");
+    });
+
+    await kv.set("milesandmore_mamcomstate", JSON.stringify(mamcomstate));
 
     console.log("Cookies stored");
     await browser.close();

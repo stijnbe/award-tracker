@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowUpDown, Plane, Search } from "lucide-react";
 import { parseAsString, parseAsStringEnum } from "nuqs";
 import { useQueryStates } from "nuqs";
-import { isAfter, subDays } from "date-fns";
+import { formatDistanceToNow, isAfter, subDays } from "date-fns";
 import { Button } from "../ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FlightAward } from "@award-tracker/db";
@@ -180,6 +180,7 @@ export default function FlightAwardOverview({
                   </TableHead>
                   <TableHead>Aircraft</TableHead>
                   <TableHead>Layovers</TableHead>
+                  <TableHead>Last Seen</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,6 +212,11 @@ export default function FlightAwardOverview({
                       {award.layovers
                         .map((s) => `${s.airport.name} (${s.layoverDuration}m)`)
                         .join(", ")}
+                    </TableCell>
+                    <TableCell>
+                      {formatDistanceToNow(award.createdAt, {
+                        addSuffix: true,
+                      })}
                     </TableCell>
                   </TableRow>
                 ))}

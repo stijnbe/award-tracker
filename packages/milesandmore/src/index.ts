@@ -79,6 +79,9 @@ async function findFirstClassDates(
       await client.flightAward.upsert({
         where: { externalFlightId: flight.id },
         update: {
+          miles: flight.miles,
+          taxes: flight.taxes,
+          currency: flight.currency,
           lastSeenAt: new Date(),
         },
         create: {
@@ -141,8 +144,8 @@ async function scanFlightAwards() {
 
   if (needsLogin) {
     await login(
-      process.env.MILES_AND_MORE_USERNAME!,
-      process.env.MILES_AND_MORE_PASSWORD!
+      process.env.MILESANDMORE_USERNAME!,
+      process.env.MILESANDMORE_PASSWORD!
     );
   }
 
